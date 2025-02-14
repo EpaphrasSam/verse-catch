@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Translation {
+  id        Int               @id @default(autoincrement())
+  code      String           @unique  // e.g., "NIV", "KJV"
+  name      String
+  language  String           @default("en")
+  verses    VerseTranslation[]
+
+  @@index([code])
+}
+
+model Book {
+  id        Int       @id @default(autoincrement())
+  number    Int      @unique // Book order (1-66)
+  name      String   // Full name
+  shortName String   // e.g., "Gen", "Exo"
+  testament String   // "old" or "new"
+  chapters  Chapter[]
+
+  @@index([shortName])
+  @@index([name])
+}
+
+model Chapter {
+  id        Int               @id @default(autoincrement())
+  number    Int              // Chapter number
+  bookId    Int
+  book      Book             @relation(fields: [bookId], references: [id])
+  verses    VerseTranslation[]
+
+  @@unique([number, bookId])
+}
+
+model VerseTranslation {
+  id            Int         @id @default(autoincrement())
+  number        Int        // Verse number
+  text          String     // Verse text
+  translationId Int
+  translation   Translation @relation(fields: [translationId], references: [id])
+  chapterId     Int
+  chapter       Chapter    @relation(fields: [chapterId], references: [id])
+
+  @@unique([number, chapterId, translationId])
+  @@index([text])  // For verse search
+}
