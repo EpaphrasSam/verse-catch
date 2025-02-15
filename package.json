@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "vercel-build": "npm run db:generate && npm run db:push && npm run db:import && next build",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:import": "ts-node scripts/import-bible.ts"

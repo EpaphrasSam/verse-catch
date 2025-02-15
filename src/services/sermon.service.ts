@@ -44,7 +44,11 @@ const processQueue = async (): Promise<VerseDetection[]> => {
     const buffer = Buffer.from(arrayBuffer);
 
     // Start transcription immediately
-    const transcriptionPromise = transcribeChunk(buffer);
+    const transcriptionPromise = transcribeChunk(buffer, {
+      sequence: chunk.sequence,
+      timestamp: chunk.timestamp,
+      duration: chunk.duration,
+    });
     let verseDetectionPromise: Promise<VerseDetection[]> | null = null;
 
     // While transcribing, process any pending verse detections
