@@ -2,6 +2,7 @@ import gemini from "@/utils/gemini";
 import prisma from "@/utils/prisma";
 import { BibleReference, VerseDetection } from "@/types/bible.type";
 import { APP_CONFIG } from "@/config/app.config";
+import { AppError, TranscriptionError } from "@/utils/errors";
 
 const GEMINI_PROMPT = `You are a Bible verse detection expert. Analyze the following sermon transcription for Bible verse references.
 Your task is to identify both explicit and implicit Bible verse references, including paraphrased verses and verse ranges.
@@ -75,17 +76,26 @@ Expected detection:
 Transcription to analyze: [TEXT]`;
 
 const cleanGeminiResponse = (text: string): string => {
-  // Remove markdown code blocks
-  text = text.replace(/```(?:json)?\n|\n```/g, "");
+  try {
+    // Remove markdown code blocks
+    text = text.replace(/```(?:json)?\n|\n```/g, "");
 
-  // Remove any text before the first { and after the last }
-  const firstBrace = text.indexOf("{");
-  const lastBrace = text.lastIndexOf("}");
-  if (firstBrace !== -1 && lastBrace !== -1) {
+    // Remove any text before the first { and after the last }
+    const firstBrace = text.indexOf("{");
+    const lastBrace = text.lastIndexOf("}");
+    if (firstBrace === -1 || lastBrace === -1) {
+      throw new TranscriptionError("Invalid Gemini response format");
+    }
     text = text.slice(firstBrace, lastBrace + 1);
-  }
 
-  return text.trim();
+    return text.trim();
+  } catch (error) {
+    console.error("Error cleaning Gemini response:", error);
+    throw new TranscriptionError(
+      "Failed to process Gemini response: " +
+        (error instanceof Error ? error.message : "Unknown error")
+    );
+  }
 };
 
 const getVerseText = async (reference: BibleReference) => {
@@ -211,7 +221,11 @@ const getVerseText = async (reference: BibleReference) => {
     };
   } catch (error) {
     console.error("Error fetching verse text:", error);
-    return null;
+    throw new AppError(
+      "Failed to fetch verse text from database",
+      "DATABASE_ERROR",
+      500
+    );
   }
 };
 
@@ -219,6 +233,10 @@ export const detectVerses = async (
   transcription: string
 ): Promise<VerseDetection[]> => {
   try {
+    if (!transcription || typeof transcription !== "string") {
+      throw new TranscriptionError("Invalid transcription input");
+    }
+
     const model = gemini.getGenerativeModel({ model: "gemini-pro" });
     const prompt = GEMINI_PROMPT.replace("[TEXT]", transcription);
 
@@ -227,14 +245,12 @@ export const detectVerses = async (
     });
 
     if (!result?.response) {
-      console.error("Empty response from Gemini");
-      return [];
+      throw new TranscriptionError("Empty response from Gemini");
     }
 
     const responseText = result.response.text();
     if (!responseText) {
-      console.error("Empty text in Gemini response");
-      return [];
+      throw new TranscriptionError("Empty text in Gemini response");
     }
 
     console.log("Raw Gemini response:", responseText);
@@ -244,8 +260,7 @@ export const detectVerses = async (
     try {
       const parsed = JSON.parse(cleanedResponse);
       if (!parsed?.detections || !Array.isArray(parsed.detections)) {
-        console.error("Invalid response format from Gemini:", parsed);
-        return [];
+        throw new TranscriptionError("Invalid response format from Gemini");
       }
 
       // Get verse texts in parallel and filter out null results
@@ -259,7 +274,7 @@ export const detectVerses = async (
             )
             .map(async (detection: BibleReference) => {
               const verseResult = await getVerseText(detection);
-              if (!verseResult) return null; // Skip if no verse text found
+              if (!verseResult) return null;
 
               return {
                 reference: {
@@ -284,10 +299,19 @@ export const detectVerses = async (
       return detections;
     } catch (parseError) {
       console.error("Failed to parse Gemini response:", parseError);
-      return [];
+      throw new TranscriptionError(
+        "Failed to parse verse detection results: " +
+          (parseError instanceof Error ? parseError.message : "Unknown error")
+      );
     }
-  } catch (geminiError) {
-    console.error("Gemini API error:", geminiError);
-    return [];
+  } catch (error) {
+    console.error("Verse detection error:", error);
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw new TranscriptionError(
+      "Failed to detect verses: " +
+        (error instanceof Error ? error.message : "Unknown error")
+    );
   }
 };

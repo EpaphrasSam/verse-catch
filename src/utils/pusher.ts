@@ -13,8 +13,8 @@ const subscribedChannels = new Set<string>();
 
 export const pusherClient =
   global.pusherClient ||
-  new PusherClient(env.NEXT_PUBLIC_PUSHER_KEY, {
-    cluster: env.NEXT_PUBLIC_PUSHER_CLUSTER,
+  new PusherClient(env.client.PUSHER_KEY, {
+    cluster: env.client.PUSHER_CLUSTER,
     forceTLS: true,
     enabledTransports: ["ws", "wss"],
   });
@@ -51,10 +51,10 @@ if (process.env.NODE_ENV !== "production") {
 
 // Server-side Pusher instance
 export const pusherServer = new PusherServer({
-  appId: env.PUSHER_APP_ID,
-  key: env.NEXT_PUBLIC_PUSHER_KEY,
-  secret: env.PUSHER_SECRET,
-  cluster: env.NEXT_PUBLIC_PUSHER_CLUSTER,
+  appId: env.server.PUSHER_APP_ID,
+  key: env.client.PUSHER_KEY,
+  secret: env.server.PUSHER_SECRET,
+  cluster: env.client.PUSHER_CLUSTER,
   useTLS: true,
 });
 

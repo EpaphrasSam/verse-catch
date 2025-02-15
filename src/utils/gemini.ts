@@ -6,8 +6,9 @@ declare global {
   var gemini: GoogleGenerativeAI | undefined;
 }
 
-const gemini = global.gemini || new GoogleGenerativeAI(env.GEMINI_API_KEY);
+const gemini =
+  global.gemini || new GoogleGenerativeAI(env.server.GEMINI_API_KEY);
 
-if (env.NODE_ENV !== "production") global.gemini = gemini;
+if (env.client.NODE_ENV !== "production") global.gemini = gemini;
 
 export default gemini;

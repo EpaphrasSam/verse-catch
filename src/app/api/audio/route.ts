@@ -3,6 +3,7 @@ import { transcribeChunk } from "@/services/transcription.service";
 import { detectVerses } from "@/services/verse-detection.service";
 import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/utils/pusher";
 import { VerseDetection } from "@/types/bible.type";
+import { AppError, formatErrorForClient } from "@/utils/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -16,14 +17,27 @@ export async function POST(req: NextRequest) {
 
     // Validate required fields
     if (!audioFile) {
-      return new Response(JSON.stringify({ error: "Audio file is required" }), {
-        status: 400,
-      });
+      return new Response(
+        JSON.stringify({
+          error: formatErrorForClient(
+            new AppError("Audio file is required", "VALIDATION_ERROR", 400)
+          ),
+        }),
+        { status: 400 }
+      );
     }
 
     if (isNaN(timestamp) || isNaN(duration)) {
       return new Response(
-        JSON.stringify({ error: "Invalid timestamp or duration" }),
+        JSON.stringify({
+          error: formatErrorForClient(
+            new AppError(
+              "Invalid timestamp or duration",
+              "VALIDATION_ERROR",
+              400
+            )
+          ),
+        }),
         { status: 400 }
       );
     }
@@ -36,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Transcribe audio with metadata
     const transcription = await transcribeChunk(buffer, {
-      sequence: 0, // No longer using sequences
+      sequence: 0,
       timestamp,
       duration,
     });
@@ -82,17 +96,12 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     console.error("Audio processing error:", error);
-    return new Response(
-      JSON.stringify({
-        error:
-          error instanceof Error ? error.message : "Failed to process audio",
-      }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const formattedError = formatErrorForClient(error);
+    return new Response(JSON.stringify({ error: formattedError }), {
+      status: error instanceof AppError ? error.statusCode : 500,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   }
 }

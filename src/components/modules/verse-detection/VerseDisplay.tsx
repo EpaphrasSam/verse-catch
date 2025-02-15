@@ -7,6 +7,7 @@ import { SpeakerWaveIcon } from "@heroicons/react/24/solid";
 import { motion, AnimatePresence } from "framer-motion";
 import { VerseDetection } from "@/types/bible.type";
 import { useAudioStore } from "@/stores/audio.store";
+import { ErrorBoundary } from "@/components/common/error/ErrorBoundary";
 
 const formatReference = (verse: VerseDetection) => {
   const { book, chapter, verse: verseNum, verseRange } = verse.reference;
@@ -67,7 +68,7 @@ const combineVerses = (verses: VerseDetection[]): VerseDetection[] => {
   return combined;
 };
 
-export const VerseDisplay = () => {
+const VerseDisplayContent = () => {
   const { verses } = useVerses();
   const { isRecording, isProcessing } = useAudioStore();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -136,7 +137,7 @@ export const VerseDisplay = () => {
             {verses.length > 1 && (
               <button
                 onClick={prevVerse}
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-900 transition-colors z-10"
+                className="absolute -left-6 sm:left-4  top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-900 transition-colors z-10"
                 aria-label="Previous verse"
               >
                 <ChevronLeftIcon className="h-6 w-6" />
@@ -168,7 +169,7 @@ export const VerseDisplay = () => {
             {verses.length > 1 && (
               <button
                 onClick={nextVerse}
-                className="absolute right-0 sm:right-4 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-900 transition-colors z-10"
+                className="absolute -right-6 sm:right-4 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-900 transition-colors z-10"
                 aria-label="Next verse"
               >
                 <ChevronRightIcon className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -178,9 +179,7 @@ export const VerseDisplay = () => {
 
           {/* Bottom info - naturally positioned */}
           <div className="mt-6 flex justify-center items-center text-sm px-4 sm:px-8 relative">
-            <div className="absolute left-2 sm:left-8 text-gray-500">
-              {timestamp}
-            </div>
+            <div className="absolute left-8 text-gray-500">{timestamp}</div>
             {verses.length > 1 ? (
               <div className="text-gray-400">
                 {currentIndex + 1} of {verses.length}
@@ -192,5 +191,29 @@ export const VerseDisplay = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+export const VerseDisplay = () => {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="max-w-4xl w-full mx-auto">
+          <div className="min-h-[300px] flex flex-col items-center justify-center bg-white rounded-lg shadow-sm p-8">
+            <div className="text-center space-y-4">
+              <SpeakerWaveIcon className="h-12 w-12 text-red-500 mx-auto" />
+              <h3 className="text-lg font-medium text-gray-900">
+                Error Processing Audio
+              </h3>
+              <p className="text-sm text-gray-500">
+                There was an error processing your audio. Please try again.
+              </p>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <VerseDisplayContent />
+    </ErrorBoundary>
   );
 };

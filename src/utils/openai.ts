@@ -9,9 +9,9 @@ declare global {
 const openai =
   global.openai ||
   new OpenAI({
-    apiKey: env.OPENAI_API_KEY,
+    apiKey: env.server.OPENAI_API_KEY,
   });
 
-if (env.NODE_ENV !== "production") global.openai = openai;
+if (env.client.NODE_ENV !== "production") global.openai = openai;
 
 export default openai;

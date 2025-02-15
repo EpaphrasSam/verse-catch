@@ -26,7 +26,6 @@ A real-time Bible verse detection system that processes audio streams from sermo
 - OpenAI API key
 - Google Gemini API key
 - Pusher account and credentials
-- Git
 
 ## Environment Variables
 
@@ -36,21 +35,20 @@ Create a `.env` file in the root directory with:
 # Database
 DATABASE_URL="file:./bible.db"
 
-# OpenAI
-NEXT_PUBLIC_OPENAI_API_KEY="your_openai_api_key"
+# OpenAI (Server-side only)
+OPENAI_API_KEY="your_openai_api_key"
 
-# Google Gemini
-NEXT_PUBLIC_GEMINI_API_KEY="your_gemini_api_key"
+# Google Gemini (Server-side only)
+GEMINI_API_KEY="your_gemini_api_key"
 
 # Pusher Configuration
-NEXT_PUBLIC_PUSHER_APP_ID="your_pusher_app_id"
-NEXT_PUBLIC_PUSHER_KEY="your_pusher_key"
-NEXT_PUBLIC_PUSHER_SECRET="your_pusher_secret"
-NEXT_PUBLIC_PUSHER_CLUSTER="your_pusher_cluster"
+PUSHER_APP_ID="your_pusher_app_id"          # Server-side only
+PUSHER_SECRET="your_pusher_secret"          # Server-side only
+NEXT_PUBLIC_PUSHER_KEY="your_pusher_key"    # Available client-side
+NEXT_PUBLIC_PUSHER_CLUSTER="your_cluster"   # Available client-side
 
 # App Config
-NEXT_PUBLIC_NODE_ENV="development"
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_NODE_ENV="development"          # Available client-side
 ```
 
 ## Installation
@@ -58,7 +56,7 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/epaphrassam/verse-catch.git
+   git clone https://github.com/yourusername/verse-catch.git
    cd verse-catch
    ```
 
@@ -96,6 +94,20 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
 2. Open [http://localhost:3000](http://localhost:3000) in your browser
 
+## Deployment to Vercel
+
+1. Create a new project on Vercel and connect your repository.
+
+2. Add all environment variables in Vercel's dashboard under Settings > Environment Variables.
+
+3. The deployment will automatically:
+   - Clone the Bible translations during build
+   - Generate the database
+   - Import Bible data
+   - Build and deploy the application
+
+Note: The application uses `/tmp` directory in production for temporary file storage during audio processing.
+
 ## Usage
 
 1. Click the "Start Listening" button to begin capturing audio
@@ -108,7 +120,7 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ## API Routes
 
 - `POST /api/audio` - Process audio chunks and detect verses
-- `WebSocket` - Real-time verse updates via Pusher
+- Real-time updates via Pusher
 
 ## Contributing
 
@@ -124,4 +136,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Security Note
 
-Please ensure you keep your API keys and credentials secure. Never commit the `.env` file to version control.
+Please ensure you keep your API keys and credentials secure. Never commit the `.env` file or the `bible.db` to version control.

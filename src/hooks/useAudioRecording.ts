@@ -5,6 +5,7 @@ import { useAudioStore } from "@/stores/audio.store";
 import { audioHelpers } from "@/helpers/audio";
 import { APP_CONFIG } from "@/config/app.config";
 import toast from "react-hot-toast";
+import { AppError } from "@/utils/errors";
 
 export const useAudioRecording = () => {
   const {
@@ -41,14 +42,22 @@ export const useAudioRecording = () => {
   const startRecording = useCallback(async () => {
     try {
       console.log("🎤 Requesting microphone access...");
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: APP_CONFIG.AUDIO.CHANNELS,
-          sampleRate: APP_CONFIG.AUDIO.SAMPLE_RATE,
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
-      });
+      const stream = await navigator.mediaDevices
+        .getUserMedia({
+          audio: {
+            channelCount: APP_CONFIG.AUDIO.CHANNELS,
+            sampleRate: APP_CONFIG.AUDIO.SAMPLE_RATE,
+            echoCancellation: true,
+            noiseSuppression: true,
+          },
+        })
+        .catch(() => {
+          throw new AppError(
+            "Microphone access denied. Please allow microphone access and try again.",
+            "MICROPHONE_ERROR",
+            403
+          );
+        });
       console.log("✅ Microphone access granted");
 
       const recorder = new MediaRecorder(stream, {
@@ -71,6 +80,11 @@ export const useAudioRecording = () => {
 
       recorder.onerror = (event) => {
         console.error("❌ Recording error:", event.error);
+        throw new AppError(
+          "Recording failed: " + event.error.message,
+          "RECORDING_ERROR",
+          500
+        );
       };
 
       recorder.ondataavailable = async (event) => {
@@ -98,7 +112,12 @@ export const useAudioRecording = () => {
             });
 
             if (!response.ok) {
-              throw new Error("Failed to process audio");
+              const errorData = await response.json();
+              throw new AppError(
+                errorData.error?.message || "Failed to process audio",
+                errorData.error?.code || "PROCESSING_ERROR",
+                response.status
+              );
             }
 
             const result = await response.json();
@@ -141,8 +160,16 @@ export const useAudioRecording = () => {
             setProcessing(false);
           } catch (error) {
             console.error("Error processing audio:", error);
-            setError("Failed to process audio");
             setProcessing(false);
+            if (error instanceof AppError) {
+              setError(error.message);
+            } else {
+              setError(
+                error instanceof Error
+                  ? error.message
+                  : "Failed to process audio"
+              );
+            }
           }
         }
       };
@@ -164,9 +191,14 @@ export const useAudioRecording = () => {
 
       return cleanupRef.current;
     } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Failed to start recording"
-      );
+      console.error("Recording setup error:", error);
+      if (error instanceof AppError) {
+        setError(error.message);
+      } else {
+        setError(
+          error instanceof Error ? error.message : "Failed to start recording"
+        );
+      }
       return undefined;
     }
   }, [startStore, setError, setProcessing]);

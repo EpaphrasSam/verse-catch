@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { processAudioChunk } from "@/services/sermon.service";
 import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/utils/pusher";
-import { errorHelpers } from "@/helpers/error";
+import { AppError, formatErrorForClient } from "@/utils/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -12,9 +12,14 @@ export async function POST(req: NextRequest) {
     const sequence = formData.get("sequence") as string;
 
     if (!audioFile) {
-      return new Response(JSON.stringify({ error: "Audio file is required" }), {
-        status: 400,
-      });
+      return new Response(
+        JSON.stringify({
+          error: formatErrorForClient(
+            new AppError("Audio file is required", "VALIDATION_ERROR", 400)
+          ),
+        }),
+        { status: 400 }
+      );
     }
 
     // Convert File to Buffer
@@ -45,11 +50,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Audio processing error:", error);
-    const appError = errorHelpers.createAudioProcessingError(
-      "Failed to process audio chunk"
-    );
-    return new Response(JSON.stringify({ error: appError.message }), {
-      status: appError.status,
+    const formattedError = formatErrorForClient(error);
+    return new Response(JSON.stringify({ error: formattedError }), {
+      status: error instanceof AppError ? error.statusCode : 500,
     });
   }
 }

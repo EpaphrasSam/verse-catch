@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { detectVerses } from "@/services/verse-detection.service";
-import { errorHelpers } from "@/helpers/error";
 import { useVerseStore } from "@/stores/verse.store";
+import { AppError, formatErrorForClient } from "@/utils/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,11 @@ export async function POST(req: NextRequest) {
 
     if (!transcription) {
       return new Response(
-        JSON.stringify({ error: "Transcription is required" }),
+        JSON.stringify({
+          error: formatErrorForClient(
+            new AppError("Transcription is required", "VALIDATION_ERROR", 400)
+          ),
+        }),
         { status: 400 }
       );
     }
@@ -21,11 +25,9 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ verses }), { status: 200 });
   } catch (error) {
     console.error("Verse detection error:", error);
-    const appError = errorHelpers.createVerseDetectionError(
-      "Failed to detect verses"
-    );
-    return new Response(JSON.stringify({ error: appError.message }), {
-      status: appError.status,
+    const formattedError = formatErrorForClient(error);
+    return new Response(JSON.stringify({ error: formattedError }), {
+      status: error instanceof AppError ? error.statusCode : 500,
     });
   }
 }
@@ -39,7 +41,15 @@ export async function GET(req: NextRequest) {
 
     if (!startTime || !endTime) {
       return new Response(
-        JSON.stringify({ error: "Start and end time are required" }),
+        JSON.stringify({
+          error: formatErrorForClient(
+            new AppError(
+              "Start and end time are required",
+              "VALIDATION_ERROR",
+              400
+            )
+          ),
+        }),
         { status: 400 }
       );
     }
@@ -52,9 +62,9 @@ export async function GET(req: NextRequest) {
     return new Response(JSON.stringify({ verses }), { status: 200 });
   } catch (error) {
     console.error("Verse fetch error:", error);
-    const appError = errorHelpers.createDatabaseError("Failed to fetch verses");
-    return new Response(JSON.stringify({ error: appError.message }), {
-      status: appError.status,
+    const formattedError = formatErrorForClient(error);
+    return new Response(JSON.stringify({ error: formattedError }), {
+      status: error instanceof AppError ? error.statusCode : 500,
     });
   }
 }

@@ -5,8 +5,13 @@ import {
   VerseDetection,
   ProcessingMetadata,
 } from "@/types/bible.type";
-import { errorHelpers } from "@/helpers/error";
 import { APP_CONFIG } from "@/config/app.config";
+import {
+  AppError,
+  FileSizeError,
+  TranscriptionError,
+  StorageError,
+} from "@/utils/errors";
 
 interface ProcessingState {
   isProcessing: boolean;
@@ -24,6 +29,8 @@ const state: ProcessingState = {
   processingMetadata: [],
 };
 
+const MAX_QUEUE_SIZE = 10; // Maximum number of chunks in queue
+
 const processQueue = async (): Promise<VerseDetection[]> => {
   if (state.isProcessing || state.queue.length === 0) return [];
 
@@ -34,8 +41,8 @@ const processQueue = async (): Promise<VerseDetection[]> => {
   try {
     // Validate audio duration
     if (chunk.duration > APP_CONFIG.AUDIO.MAX_DURATION) {
-      throw errorHelpers.createTranscriptionError(
-        "Audio chunk exceeds maximum duration"
+      throw new FileSizeError(
+        `Audio chunk duration ${chunk.duration}ms exceeds maximum ${APP_CONFIG.AUDIO.MAX_DURATION}ms`
       );
     }
 
@@ -94,8 +101,11 @@ const processQueue = async (): Promise<VerseDetection[]> => {
     return [];
   } catch (error) {
     console.error("Processing error:", error);
-    throw errorHelpers.createTranscriptionError(
-      "Failed to process audio chunk"
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw new TranscriptionError(
+      error instanceof Error ? error.message : "Failed to process audio chunk"
     );
   } finally {
     state.isProcessing = false;
@@ -109,15 +119,35 @@ const processQueue = async (): Promise<VerseDetection[]> => {
 export const processAudioChunk = async (
   chunk: AudioChunk
 ): Promise<VerseDetection[]> => {
-  // Add sequence number if not present
-  const processedChunk = {
-    ...chunk,
-    sequence: chunk.sequence ?? ++state.lastSequence,
-  };
+  try {
+    // Validate chunk
+    if (!chunk || !chunk.blob) {
+      throw new TranscriptionError("Invalid audio chunk");
+    }
 
-  // Add to queue and process
-  state.queue.push(processedChunk);
-  return processQueue();
+    // Check queue size
+    if (state.queue.length >= MAX_QUEUE_SIZE) {
+      throw new StorageError("Audio processing queue is full");
+    }
+
+    // Add sequence number if not present
+    const processedChunk = {
+      ...chunk,
+      sequence: chunk.sequence ?? ++state.lastSequence,
+    };
+
+    // Add to queue and process
+    state.queue.push(processedChunk);
+    return processQueue();
+  } catch (error) {
+    console.error("Audio chunk processing error:", error);
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw new TranscriptionError(
+      error instanceof Error ? error.message : "Failed to process audio chunk"
+    );
+  }
 };
 
 // Utility to get processing statistics

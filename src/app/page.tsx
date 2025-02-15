@@ -1,5 +1,6 @@
 import { VerseDisplay } from "@/components/modules/verse-detection/VerseDisplay";
 import { RecordingControls } from "@/components/modules/verse-detection/RecordingControls";
+import { ErrorBoundary } from "@/components/common/error/ErrorBoundary";
 
 export default function Home() {
   return (
@@ -13,14 +14,14 @@ export default function Home() {
       <div className="flex-1 flex flex-col px-4 max-w-4xl mx-auto w-full">
         {/* Verse Display - centered vertically when no verses */}
         <div className="flex-1 flex items-center mb-8">
-          <VerseDisplay />
+          <ErrorBoundary>
+            <VerseDisplay />
+          </ErrorBoundary>
         </div>
 
         {/* Recording Controls - fixed at bottom */}
         <div className="mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <RecordingControls />
-          </div>
+          <RecordingControls />
         </div>
 
         {/* Warning Label */}

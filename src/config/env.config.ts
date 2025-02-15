@@ -1,38 +1,38 @@
 import { z } from "zod";
 
-// Define environment variables with explicit process.env access
-const ENV = {
+// Server-side environment variables
+const SERVER_ENV = {
   // API Keys
-  OPENAI_API_KEY: process.env.NEXT_PUBLIC_OPENAI_API_KEY || "",
-  GEMINI_API_KEY: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
 
-  // Pusher Configuration
-  PUSHER_APP_ID: process.env.NEXT_PUBLIC_PUSHER_APP_ID || "",
-  NEXT_PUBLIC_PUSHER_KEY: process.env.NEXT_PUBLIC_PUSHER_KEY || "",
-  PUSHER_SECRET: process.env.NEXT_PUBLIC_PUSHER_SECRET || "",
-  NEXT_PUBLIC_PUSHER_CLUSTER: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "",
+  // Pusher Configuration (Server)
+  PUSHER_APP_ID: process.env.PUSHER_APP_ID || "",
+  PUSHER_SECRET: process.env.PUSHER_SECRET || "",
 
-  // App URLs
-  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || "",
+  // Environment
+  NODE_ENV: process.env.NODE_ENV || "development",
+} as const;
+
+// Client-side environment variables
+const CLIENT_ENV = {
+  // Pusher Configuration (Client)
+  PUSHER_KEY: process.env.NEXT_PUBLIC_PUSHER_KEY || "",
+  PUSHER_CLUSTER: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "",
 
   // Environment
   NODE_ENV: process.env.NEXT_PUBLIC_NODE_ENV || "development",
 } as const;
 
 // Validate environment variables
-const envSchema = z.object({
+const serverEnvSchema = z.object({
   // API Keys
   OPENAI_API_KEY: z.string().min(1),
   GEMINI_API_KEY: z.string().min(1),
 
-  // Pusher Configuration
+  // Pusher Configuration (Server)
   PUSHER_APP_ID: z.string().min(1),
-  NEXT_PUBLIC_PUSHER_KEY: z.string().min(1),
   PUSHER_SECRET: z.string().min(1),
-  NEXT_PUBLIC_PUSHER_CLUSTER: z.string().min(1),
-
-  // App URLs
-  NEXT_PUBLIC_APP_URL: z.string().url(),
 
   // Environment
   NODE_ENV: z
@@ -40,13 +40,35 @@ const envSchema = z.object({
     .default("development"),
 });
 
-// Export type
-export type Env = z.infer<typeof envSchema>;
+const clientEnvSchema = z.object({
+  // Pusher Configuration (Client)
+  PUSHER_KEY: z.string().min(1),
+  PUSHER_CLUSTER: z.string().min(1),
+
+  // Environment
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
+});
+
+// Export types
+export type ServerEnv = z.infer<typeof serverEnvSchema>;
+export type ClientEnv = z.infer<typeof clientEnvSchema>;
 
 // Validate and export env
-function validateEnv(): Env {
+function validateEnv() {
+  const isServer = typeof window === "undefined";
+
   try {
-    return envSchema.parse(ENV);
+    // Always validate client env
+    const client = clientEnvSchema.parse(CLIENT_ENV);
+
+    // Only validate server env on the server
+    const server = isServer
+      ? serverEnvSchema.parse(SERVER_ENV)
+      : ({} as ServerEnv);
+
+    return { server, client };
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missingVars = error.errors

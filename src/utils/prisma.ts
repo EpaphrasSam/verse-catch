@@ -12,6 +12,6 @@ const prisma =
     log: ["info"],
   });
 
-if (env.NODE_ENV !== "production") global.prisma = prisma;
+if (env.client.NODE_ENV !== "production") global.prisma = prisma;
 
 export default prisma;
