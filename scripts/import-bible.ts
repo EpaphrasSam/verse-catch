@@ -186,6 +186,7 @@ async function createBooksAndChapters() {
     );
 
     for (const book of books) {
+      console.log("Current book uploading", book);
       await prisma.book.upsert({
         where: {
           number: book.book_id,

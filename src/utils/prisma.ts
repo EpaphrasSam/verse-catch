@@ -1,4 +1,3 @@
-import { env } from "@/config/env.config";
 import { PrismaClient } from "@prisma/client";
 
 declare global {
@@ -12,6 +11,6 @@ const prisma =
     log: ["info"],
   });
 
-if (env.client.NODE_ENV !== "production") global.prisma = prisma;
+if (process.env.NODE_ENV !== "production") global.prisma = prisma;
 
 export default prisma;

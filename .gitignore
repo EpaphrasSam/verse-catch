@@ -41,5 +41,6 @@ next-env.d.ts
 
 # Database
 *.db
+*.sql
 *.db-journal
 BibleTranslations/

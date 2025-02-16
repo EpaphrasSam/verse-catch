@@ -10,7 +10,8 @@
     "vercel-build": "prisma generate && next build",
     "db:check": "node -e \"if (!require('fs').existsSync('./BibleTranslations')) { console.log('Cloning BibleTranslations...'); require('child_process').execSync('git clone https://github.com/jadenzaleski/BibleTranslations.git', { stdio: 'inherit' }); } else { console.log('BibleTranslations already exists.'); }\"",
     "db:setup": "prisma generate && prisma db push",
-    "db:import": "npm run db:check && npm run db:setup && cross-env NODE_PATH=. ts-node scripts/import-bible.ts"
+    "db:import": "cross-env NODE_PATH=. ts-node scripts/import-bible.ts",
+    "migrate:postgres": "cross-env NODE_PATH=. ts-node scripts/migrate-to-postgres.ts"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",

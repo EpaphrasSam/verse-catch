@@ -1,92 +1,139 @@
 import { NextResponse } from "next/server";
 import prisma from "@/utils/prisma";
-import fs from "fs";
-import path from "path";
+
+type Diagnostics = {
+  connection: {
+    status: "connected" | "error";
+    message: string;
+    error?: unknown;
+  } | null;
+  counts: {
+    translations: number;
+    books: number;
+    chapters: number;
+    verses: number;
+  } | null;
+  sampleData:
+    | {
+        translation: { code: string; name: string } | null;
+        book: { name: string; shortName: string } | null;
+        verse: {
+          text: string;
+          translation: string;
+          book: string;
+          chapter: number;
+          number: number;
+        } | null;
+      }
+    | {
+        error: string;
+      }
+    | null;
+  environment: {
+    DATABASE_URL: "Set" | "Not set";
+    NODE_ENV: string | undefined;
+  };
+};
 
 export async function GET() {
   try {
-    // List of possible paths to check
-    const possiblePaths = [
-      "/tmp/prisma/bible.db",
-      "./prisma/bible.db",
-      "/var/task/prisma/bible.db",
-      path.join(process.cwd(), "prisma/bible.db"),
-    ];
-
-    // Add DATABASE_URL path if it exists
-    if (process.env.DATABASE_URL) {
-      possiblePaths.push(process.env.DATABASE_URL.replace("file:", ""));
-    }
-
-    // Check all paths
-    const pathResults = possiblePaths.map((dbPath) => ({
-      path: dbPath,
-      exists: fs.existsSync(dbPath),
-      stats: fs.existsSync(dbPath) ? fs.statSync(dbPath) : null,
-      absolutePath: path.resolve(dbPath),
-    }));
-
-    // System information
-    const systemInfo = {
-      cwd: process.cwd(),
-      tmpExists: fs.existsSync("/tmp"),
-      tmpWritable: false,
-      env: {
+    // Test database connection and data
+    const diagnostics: Diagnostics = {
+      connection: null,
+      counts: null,
+      sampleData: null,
+      environment: {
+        DATABASE_URL: process.env.DATABASE_URL ? "Set" : "Not set",
         NODE_ENV: process.env.NODE_ENV,
-        DATABASE_URL: process.env.DATABASE_URL,
-        PWD: process.env.PWD,
       },
     };
 
-    // Check if /tmp is writable
+    // Test connection and get counts
     try {
-      if (fs.existsSync("/tmp")) {
-        fs.accessSync("/tmp", fs.constants.W_OK);
-        systemInfo.tmpWritable = true;
-      }
-    } catch {
-      systemInfo.tmpWritable = false;
-    }
+      const [translationCount, bookCount, chapterCount, verseCount] =
+        await Promise.all([
+          prisma.translation.count(),
+          prisma.book.count(),
+          prisma.chapter.count(),
+          prisma.verseTranslation.count(),
+        ]);
 
-    // Try database connection
-    let dbConnection = null;
-    try {
-      const translation = await prisma.translation.findFirst();
-      dbConnection = {
-        success: true,
-        sampleTranslation: translation?.code,
+      diagnostics.counts = {
+        translations: translationCount,
+        books: bookCount,
+        chapters: chapterCount,
+        verses: verseCount,
+      };
+
+      diagnostics.connection = {
+        status: "connected",
+        message: "Successfully connected to database",
       };
     } catch (dbError) {
-      dbConnection = {
-        success: false,
-        error:
-          dbError instanceof Error
-            ? {
-                message: dbError.message,
-                name: dbError.name,
-              }
-            : dbError,
+      diagnostics.connection = {
+        status: "error",
+        message:
+          dbError instanceof Error ? dbError.message : "Unknown database error",
+        error: dbError,
       };
+    }
+
+    // Try to get sample data if connection succeeded
+    if (diagnostics.connection?.status === "connected") {
+      try {
+        const [sampleTranslation, sampleBook, sampleVerse] = await Promise.all([
+          prisma.translation.findFirst(),
+          prisma.book.findFirst(),
+          prisma.verseTranslation.findFirst({
+            include: {
+              translation: true,
+              chapter: {
+                include: {
+                  book: true,
+                },
+              },
+            },
+          }),
+        ]);
+
+        diagnostics.sampleData = {
+          translation: sampleTranslation
+            ? {
+                code: sampleTranslation.code,
+                name: sampleTranslation.name,
+              }
+            : null,
+          book: sampleBook
+            ? {
+                name: sampleBook.name,
+                shortName: sampleBook.shortName,
+              }
+            : null,
+          verse: sampleVerse
+            ? {
+                text: sampleVerse.text,
+                translation: sampleVerse.translation.code,
+                book: sampleVerse.chapter.book.name,
+                chapter: sampleVerse.chapter.number,
+                number: sampleVerse.number,
+              }
+            : null,
+        };
+      } catch (sampleError) {
+        diagnostics.sampleData = {
+          error:
+            sampleError instanceof Error
+              ? sampleError.message
+              : "Failed to fetch sample data",
+        };
+      }
     }
 
     return NextResponse.json({
       timestamp: new Date().toISOString(),
-      paths: pathResults.map((result) => ({
-        path: result.path,
-        absolutePath: result.absolutePath,
-        exists: result.exists,
-        size: result.stats
-          ? `${(result.stats.size / (1024 * 1024)).toFixed(2)}MB`
-          : null,
-        permissions: result.stats
-          ? result.stats.mode.toString(8).slice(-3)
-          : null,
-      })),
-      system: systemInfo,
-      database: dbConnection,
+      ...diagnostics,
     });
   } catch (error) {
-    console.error("Diagnostic error:", error);
     return NextResponse.json(
       {
         status: "error",

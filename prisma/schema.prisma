@@ -1,43 +1,35 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Translation {
-  id        Int               @id @default(autoincrement())
-  code      String           @unique
-  name      String
-  language  String           @default("en")
-  verses    VerseTranslation[]
-
-  @@index([code])
+  id       Int                @id @default(autoincrement())
+  code     String             @unique
+  name     String
+  language String             @default("en")
+  verses   VerseTranslation[]
 }
 
 model Book {
   id        Int       @id @default(autoincrement())
-  number    Int      @unique
+  number    Int       @unique
   name      String
   shortName String
   testament String
   chapters  Chapter[]
-
-  @@index([shortName])
-  @@index([name])
 }
 
 model Chapter {
-  id        Int               @id @default(autoincrement())
-  number    Int
-  bookId    Int
-  book      Book             @relation(fields: [bookId], references: [id])
-  verses    VerseTranslation[]
+  id     Int                @id @default(autoincrement())
+  number Int
+  bookId Int
+  book   Book               @relation(fields: [bookId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  verses VerseTranslation[]
 
   @@unique([number, bookId])
 }
@@ -47,10 +39,9 @@ model VerseTranslation {
   number        Int
   text          String
   translationId Int
-  translation   Translation @relation(fields: [translationId], references: [id])
   chapterId     Int
-  chapter       Chapter    @relation(fields: [chapterId], references: [id])
+  chapter       Chapter     @relation(fields: [chapterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  translation   Translation @relation(fields: [translationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([number, chapterId, translationId])
-  @@index([text])
 }

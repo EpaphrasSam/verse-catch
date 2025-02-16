@@ -1,6 +1,6 @@
 {
   "version": 2,
   "buildCommand": "npm run vercel-build",
-  "installCommand": "npm install && mkdir -p /tmp/prisma && curl -L https://github.com/EpaphrasSam/verse-catch/releases/download/db/bible.db -o /tmp/prisma/bible.db",
+  "installCommand": "npm install",
   "outputDirectory": ".next"
 }
