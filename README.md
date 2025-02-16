@@ -109,10 +109,16 @@ The project is optimized for Vercel deployment with a pre-built database strateg
 
 2. Upload the generated `prisma/bible.db` to GitHub Releases
 
+   - Create a new release in your GitHub repository
+   - Upload the bible.db file
+   - Note the download URL (will be something like `https://github.com/username/verse-catch/releases/download/tag/bible.db`)
+
 3. Deploy to Vercel:
-   - The deployment will automatically download the pre-built database
+   - The deployment will automatically download the pre-built database using curl
    - No database building during deployment
    - Fast, read-only database access in production
+
+Note: The deployment process uses `curl` to download the database file from GitHub Releases. Make sure your release is publicly accessible.
 
 ## API Routes
 
