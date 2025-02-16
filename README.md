@@ -14,7 +14,7 @@ A real-time Bible verse detection system that processes audio streams from sermo
 
 - **Frontend**: Next.js, React, TailwindCSS
 - **Backend**: Next.js API Routes
-- **Database**: SQLite with Prisma
+- **Database**: SQLite with Prisma (read-only in production)
 - **Real-time**: Pusher
 - **AI/ML**:
   - OpenAI Whisper (Speech-to-Text)
@@ -33,7 +33,7 @@ Create a `.env` file in the root directory with:
 
 ```env
 # Database
-DATABASE_URL="file:./bible.db"
+DATABASE_URL="file:./bible.db"  # Prisma will look in the prisma directory by default
 
 # OpenAI (Server-side only)
 OPENAI_API_KEY="your_openai_api_key"
@@ -69,53 +69,50 @@ NEXT_PUBLIC_NODE_ENV="development"          # Available client-side
 3. Set up the Bible database:
 
    ```bash
-   # Clone the Bible translations repository
-   git clone https://github.com/jadenzaleski/BibleTranslations.git
-
-   # Generate Prisma client
-   npm run db:generate
-
-   # Create database schema
-   npm run db:push
-
-   # Import Bible translations
+   # This will:
+   # 1. Clone BibleTranslations if not present
+   # 2. Generate Prisma client
+   # 3. Create database schema
+   # 4. Import Bible translations
    npm run db:import
    ```
 
    Note: The Bible translations import may take several minutes depending on your system.
 
-## Running the Application
+## Development
 
-1. Start the development server:
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Database Management
+
+The project uses SQLite for fast, local database operations. There are several database-related scripts:
+
+- `npm run db:check` - Checks/clones the BibleTranslations repository
+- `npm run db:setup` - Generates Prisma client and pushes schema
+- `npm run db:import` - Full database setup and import (combines above commands)
+
+## Deployment
+
+The project is optimized for Vercel deployment with a pre-built database strategy:
+
+1. Build database locally:
 
    ```bash
-   npm run dev
+   npm run db:import
    ```
 
-2. Open [http://localhost:3000](http://localhost:3000) in your browser
+2. Upload the generated `prisma/bible.db` to GitHub Releases
 
-## Deployment to Vercel
-
-1. Create a new project on Vercel and connect your repository.
-
-2. Add all environment variables in Vercel's dashboard under Settings > Environment Variables.
-
-3. The deployment will automatically:
-   - Clone the Bible translations during build
-   - Generate the database
-   - Import Bible data
-   - Build and deploy the application
-
-Note: The application uses `/tmp` directory in production for temporary file storage during audio processing.
-
-## Usage
-
-1. Click the "Start Listening" button to begin capturing audio
-2. Speak or play sermon audio
-3. The system will automatically:
-   - Transcribe the audio in real-time
-   - Detect Bible verse references
-   - Display detected verses with confidence scores
+3. Deploy to Vercel:
+   - The deployment will automatically download the pre-built database
+   - No database building during deployment
+   - Fast, read-only database access in production
 
 ## API Routes
 
@@ -136,4 +133,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Security Note
 
-Please ensure you keep your API keys and credentials secure. Never commit the `.env` file or the `bible.db` to version control.
+Please ensure you keep your API keys and credentials secure. Never commit the `.env` file to version control.
