@@ -1,28 +1,27 @@
 import { NextResponse } from "next/server";
 import prisma from "@/utils/prisma";
 
-export const runtime = "edge";
+// Remove edge runtime as it might be causing timeout issues
+// export const runtime = "edge";
 
 export async function GET(request: Request) {
   try {
-    // Check for monitoring token if needed
-    const url = new URL(request.url);
-    const monitorToken = url.searchParams.get("monitor_key");
+    // Add timeout to the database query
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Database query timeout")), 25000)
+    );
 
-    // Optional: validate monitor token
-    if (process.env.MONITOR_KEY && monitorToken !== process.env.MONITOR_KEY) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Make a lighter query - just check if we can connect
+    const dbPromise = prisma.$queryRaw`SELECT 1 as alive`;
 
-    // Make a light query - just count translations
-    const count = await prisma.translation.count();
+    // Race between timeout and query
+    await Promise.race([timeoutPromise, dbPromise]);
 
-    // Return 200 OK with basic info
+    // If we get here, the database is responsive
     return NextResponse.json(
       {
         status: "ok",
         timestamp: new Date().toISOString(),
-        translations: count,
       },
       {
         status: 200,
@@ -48,5 +47,12 @@ export async function GET(request: Request) {
         },
       }
     );
+  } finally {
+    // Ensure connection is properly closed
+    try {
+      await prisma.$disconnect();
+    } catch (e) {
+      console.error("Error disconnecting:", e);
+    }
   }
 }
