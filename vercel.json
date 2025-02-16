@@ -2,14 +2,5 @@
   "version": 2,
   "buildCommand": "npm run vercel-build",
   "installCommand": "npm install && git clone https://github.com/jadenzaleski/BibleTranslations.git",
-  "outputDirectory": ".next",
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "functions": {
-    "api/**/*": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  }
+  "outputDirectory": ".next"
 }
