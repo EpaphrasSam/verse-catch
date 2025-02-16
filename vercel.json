@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npx prisma generate && npm run vercel-build",
-  "installCommand": "npm install && git clone https://github.com/jadenzaleski/BibleTranslations.git && npm run db:generate",
+  "buildCommand": "npm run vercel-build",
+  "installCommand": "npm install && git clone https://github.com/jadenzaleski/BibleTranslations.git",
   "outputDirectory": ".next"
 }

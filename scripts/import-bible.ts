@@ -1,4 +1,4 @@
-import prisma from "@/utils/prisma";
+import prisma from "../src/utils/prisma";
 import fs from "fs/promises";
 import { statSync } from "fs";
 import path from "path";

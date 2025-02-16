@@ -7,10 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "vercel-build": "prisma generate && prisma db push && ts-node -r tsconfig-paths/register scripts/import-bible.ts && next build",
+    "vercel-build": "prisma generate && prisma db push && NODE_PATH=. ts-node scripts/import-bible.ts && next build",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:import": "ts-node -r tsconfig-paths/register scripts/import-bible.ts"
+    "db:import": "NODE_PATH=. ts-node scripts/import-bible.ts"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
@@ -19,6 +19,7 @@
     "@heroicons/react": "^2.2.0",
     "@heroui/react": "^2.6.14",
     "@prisma/client": "^6.3.1",
+    "@types/node": "^20.17.18",
     "axios": "^1.7.9",
     "chalk": "^5.4.1",
     "clsx": "^2.1.1",
@@ -31,6 +32,7 @@
     "next": "15.1.7",
     "openai": "^4.84.1",
     "ora": "^8.2.0",
+    "prisma": "^6.3.1",
     "pusher": "^5.2.0",
     "pusher-js": "^8.4.0",
     "react": "^19.0.0",
@@ -44,6 +46,9 @@
     "sqlite3": "^5.1.7",
     "swr": "^2.3.2",
     "tailwind-merge": "^3.0.1",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.3",
     "verse-catch": "file:",
     "wavesurfer.js": "^7.9.1",
     "zod": "^3.24.2",
@@ -53,18 +58,13 @@
     "@eslint/eslintrc": "^3",
     "@tailwindcss/forms": "^0.5.10",
     "@types/express": "^5.0.0",
-    "@types/node": "^20.17.18",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/socket.io": "^3.0.2",
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "postcss": "^8",
-    "prisma": "^6.3.1",
     "tailwindcss": "^3.4.1",
-    "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "tsx": "^4.19.2"
   }
 }
